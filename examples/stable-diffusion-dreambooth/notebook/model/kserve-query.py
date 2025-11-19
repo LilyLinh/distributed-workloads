@@ -21,16 +21,12 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-payload = {
-  "instances": [
-    {
-      "data": args.prompt
-    }
-  ]
-} 
+payload = {"instances": [{"data": args.prompt}]}
 
 response = requests.post(args.url, json=payload, verify=False)
 
 # Contruct image from response
-image = Image.fromarray(np.array(json.loads(response.text)['predictions'][0], dtype="uint8"))
+image = Image.fromarray(
+    np.array(json.loads(response.text)["predictions"][0], dtype="uint8")
+)
 image.save(args.filename)

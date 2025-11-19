@@ -46,7 +46,7 @@ jobs:
           echo "Error: stable branch doesn't exist. Please create the stable branch first."
           exit 1
         }
-        
+
         # Update local refs to match remote
         git checkout main
         git reset --hard origin/main
@@ -54,7 +54,7 @@ jobs:
 
         # Get commits that are in main but not in stable
         NEW_COMMITS=$(git rev-list stable..main --reverse)
-        
+
         if [ -z "$NEW_COMMITS" ]; then
           echo "No new commits to cherry-pick"
           echo "new_commits=" >> $GITHUB_OUTPUT
@@ -65,7 +65,7 @@ jobs:
           # Store commits as a single line with spaces
           COMMITS_LINE=$(echo "$NEW_COMMITS" | tr '\n' ' ' | sed 's/ $//')
           echo "new_commits=$COMMITS_LINE" >> $GITHUB_OUTPUT
-          
+
           # Get the latest commit hash for PR title
           LATEST_COMMIT=$(echo "$NEW_COMMITS" | tail -n1)
           LATEST_COMMIT_SHORT=$(git rev-parse --short "$LATEST_COMMIT")
@@ -73,7 +73,7 @@ jobs:
           echo "latest_commit=$LATEST_COMMIT" >> $GITHUB_OUTPUT
           echo "latest_commit_short=$LATEST_COMMIT_SHORT" >> $GITHUB_OUTPUT
           echo "latest_commit_msg=$LATEST_COMMIT_MSG" >> $GITHUB_OUTPUT
-          
+
           # Check if any commits contain changes to runtime images
           RUNTIME_CHANGES=false
           for commit in $NEW_COMMITS; do
@@ -92,20 +92,20 @@ jobs:
       run: |
         set -euo pipefail
         echo "No runtime changes detected. Fast-forwarding stable branch directly."
-        
+
         # Get the latest commit from main
         LATEST_COMMIT="${{ steps.check-diff.outputs.latest_commit }}"
         LATEST_COMMIT_SHORT="${{ steps.check-diff.outputs.latest_commit_short }}"
         COMMIT_COUNT=$(echo "${{ steps.check-diff.outputs.new_commits }}" | wc -w)
-        
+
         echo "Fast-forwarding stable branch to $LATEST_COMMIT_SHORT"
         echo "Total commits being synced: $COMMIT_COUNT"
-        
+
         # Update stable branch to point to the same commit as main
         git checkout stable
         git reset --hard origin/main
         git push origin stable
-        
+
         echo "✅ Successfully fast-forwarded stable branch to $LATEST_COMMIT_SHORT"
         echo "fast_forward_completed=true" >> $GITHUB_OUTPUT
 
@@ -116,18 +116,18 @@ jobs:
         set -euo pipefail
         # Look for existing PRs with the lake-gate label
         EXISTING_PR_DATA=$(gh pr list --base stable --label "lake-gate" --state open --json number,headRefName,title | jq -r '.[0] // empty')
-        
+
         if [ -n "$EXISTING_PR_DATA" ] && [ "$EXISTING_PR_DATA" != "null" ]; then
           EXISTING_PR_NUMBER=$(echo "$EXISTING_PR_DATA" | jq -r '.number')
           EXISTING_PR_BRANCH=$(echo "$EXISTING_PR_DATA" | jq -r '.headRefName')
           echo "Found existing PR: #$EXISTING_PR_NUMBER (branch: $EXISTING_PR_BRANCH)"
           echo "existing_pr_number=$EXISTING_PR_NUMBER" >> $GITHUB_OUTPUT
           echo "existing_pr_branch=$EXISTING_PR_BRANCH" >> $GITHUB_OUTPUT
-          
+
           # Check if the existing PR already contains the latest commit
           PR_TITLE=$(echo "$EXISTING_PR_DATA" | jq -r '.title')
           LATEST_COMMIT_SHORT="${{ steps.check-diff.outputs.latest_commit_short }}"
-          
+
           if echo "$PR_TITLE" | grep -q "$LATEST_COMMIT_SHORT"; then
             echo "Existing PR already contains the latest commit"
             echo "pr_up_to_date=true" >> $GITHUB_OUTPUT
@@ -150,7 +150,7 @@ jobs:
         set -euo pipefail
         PR_NUMBER="${{ steps.check-existing-pr.outputs.existing_pr_number }}"
         BRANCH_NAME="${{ steps.check-existing-pr.outputs.existing_pr_branch }}"
-        
+
         # Safety check: Verify the branch matches automation pattern before closing/deleting
         if [[ "$BRANCH_NAME" =~ ^lake-gate- ]]; then
           echo "Branch matches automation pattern (lake-gate-*), proceeding with closure and deletion..."
@@ -182,14 +182,14 @@ jobs:
         # Create a unique branch name with timestamp
         TIMESTAMP=$(date +%Y%m%d-%H%M%S)
         BRANCH_NAME="lake-gate-$TIMESTAMP"
-        
+
         echo "Creating branch: $BRANCH_NAME from main"
         git checkout main
         git checkout -b "$BRANCH_NAME"
 
         # Push the branch
         git push origin "$BRANCH_NAME"
-        
+
         # Prepare PR body
         COMMITS="${{ steps.check-diff.outputs.new_commits }}"
         LATEST_COMMIT="${{ steps.check-diff.outputs.latest_commit }}"
@@ -221,7 +221,7 @@ jobs:
         - [ ] **PR checks**: PR checks passed
         EOF
         )
-        
+
         # Add integration test requirement if runtime images changed
         if [ "$RUNTIME_CHANGES" = true ]; then
           PR_BODY="$PR_BODY"$'\n'"- [ ] **Integration Tests**: Run Jenkins integration tests on CUDA or ROCm OCP cluster (runtime image changes detected)"
@@ -234,12 +234,12 @@ jobs:
           COMMIT_MSG=$(git log --format=%s -n 1 "$commit")
           PR_BODY="$PR_BODY"$'\n'"- $COMMIT_SHORT: $COMMIT_MSG"
         done
-        
+
         PR_BODY="$PR_BODY"$'\n\n'"---"$'\n'"*This PR was created automatically by the sync workflow.*"
-        
+
         # Create the PR
         PR_TITLE="Auto sync main to stable (up to $LATEST_COMMIT_SHORT)"
-        
+
         # Normalize PR_REVIEWERS by replacing commas with spaces and create reviewer flags
         REVIEWER_FLAGS=""
         NORMALIZED_REVIEWERS=$(echo "$PR_REVIEWERS" | tr ',' ' ')
@@ -257,7 +257,7 @@ jobs:
           --label "lake-gate" \
           $REVIEWER_FLAGS \
           --draft
-        
+
         echo "Created PR: $PR_TITLE"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

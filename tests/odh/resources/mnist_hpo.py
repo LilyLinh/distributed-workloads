@@ -1,18 +1,19 @@
+import gzip
 import os
+import shutil
 import tempfile
 
+import ray
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from filelock import FileLock
-from torchvision import datasets, transforms
-
-import ray,gzip, shutil
+from minio import Minio
 from ray import train, tune
 from ray.train import Checkpoint
 from ray.tune.schedulers import AsyncHyperBandScheduler
-from minio import Minio
+from torchvision import datasets, transforms
 
 EPOCH_SIZE = 128
 TEST_SIZE = 64
@@ -21,10 +22,16 @@ local_mnist_path = os.path.dirname(os.path.abspath(__file__))
 # %%
 
 STORAGE_BUCKET_EXISTS = "{{.StorageBucketDefaultEndpointExists}}"
-print("STORAGE_BUCKET_EXISTS: ",STORAGE_BUCKET_EXISTS)
-print(f"{'Storage_Bucket_Default_Endpoint : is {{.StorageBucketDefaultEndpoint}}' if '{{.StorageBucketDefaultEndpointExists}}' == 'true' else ''}")
-print(f"{'Storage_Bucket_Name : is {{.StorageBucketName}}' if '{{.StorageBucketNameExists}}' == 'true' else ''}")
-print(f"{'Storage_Bucket_Mnist_Directory : is {{.StorageBucketMnistDir}}' if '{{.StorageBucketMnistDirExists}}' == 'true' else ''}")
+print("STORAGE_BUCKET_EXISTS: ", STORAGE_BUCKET_EXISTS)
+print(
+    f"{'Storage_Bucket_Default_Endpoint : is {{.StorageBucketDefaultEndpoint}}' if '{{.StorageBucketDefaultEndpointExists}}' == 'true' else ''}"
+)
+print(
+    f"{'Storage_Bucket_Name : is {{.StorageBucketName}}' if '{{.StorageBucketNameExists}}' == 'true' else ''}"
+)
+print(
+    f"{'Storage_Bucket_Mnist_Directory : is {{.StorageBucketMnistDir}}' if '{{.StorageBucketMnistDirExists}}' == 'true' else ''}"
+)
 
 
 class ConvNet(nn.Module):
@@ -79,7 +86,10 @@ def get_data_loaders(batch_size=128):
     # download
     print("Downloading MNIST dataset...")
 
-    if "{{.StorageBucketDefaultEndpointExists}}" == "true" and "{{.StorageBucketDefaultEndpoint}}" != "":
+    if (
+        "{{.StorageBucketDefaultEndpointExists}}" == "true"
+        and "{{.StorageBucketDefaultEndpoint}}" != ""
+    ):
         print("Using storage bucket to download datasets...")
         dataset_dir = os.path.join(local_mnist_path, "MNIST/raw")
         endpoint = "{{.StorageBucketDefaultEndpoint}}"
@@ -87,9 +97,9 @@ def get_data_loaders(batch_size=128):
         secret_key = "{{.StorageBucketSecretKey}}"
         bucket_name = "{{.StorageBucketName}}"
 
-        #remove https prefix incase provided in endpoint url
+        # remove https prefix incase provided in endpoint url
         if endpoint.startswith("https://"):
-            endpoint=endpoint[len("https://"):]
+            endpoint = endpoint[len("https://") :]
 
         # remove prefix if specified in storage bucket endpoint url
         secure = True
@@ -113,18 +123,14 @@ def get_data_loaders(batch_size=128):
             print(f"Directory '{dataset_dir}' already exists")
 
         # To download datasets from storage bucket's specific directory, use prefix to provide directory name
-        prefix="{{.StorageBucketMnistDir}}"
+        prefix = "{{.StorageBucketMnistDir}}"
         # download all files from prefix folder of storage bucket recursively
-        for item in client.list_objects(
-            bucket_name, prefix=prefix, recursive=True
-        ):  
-            file_name=item.object_name[len(prefix)+1:]
+        for item in client.list_objects(bucket_name, prefix=prefix, recursive=True):
+            file_name = item.object_name[len(prefix) + 1 :]
             dataset_file_path = os.path.join(dataset_dir, file_name)
             print(dataset_file_path)
             if not os.path.exists(dataset_file_path):
-                client.fget_object(
-                    bucket_name, item.object_name, dataset_file_path
-                )
+                client.fget_object(bucket_name, item.object_name, dataset_file_path)
             else:
                 print(f"File-path '{dataset_file_path}' already exists")
             # Unzip files
@@ -138,21 +144,27 @@ def get_data_loaders(batch_size=128):
     else:
         print("Using default MNIST mirror reference to download datasets...")
         download_datasets = True
-    
+
     # We add FileLock here because multiple workers will want to
     # download data, and this may cause overwrites since
     # DataLoader is not threadsafe.
     with FileLock(os.path.expanduser("~/data.lock")):
         train_loader = torch.utils.data.DataLoader(
             datasets.MNIST(
-                local_mnist_path, train=True, download=download_datasets, transform=mnist_transforms
+                local_mnist_path,
+                train=True,
+                download=download_datasets,
+                transform=mnist_transforms,
             ),
             batch_size=batch_size,
             shuffle=True,
         )
         test_loader = torch.utils.data.DataLoader(
             datasets.MNIST(
-                local_mnist_path, train=False, download=download_datasets, transform=mnist_transforms
+                local_mnist_path,
+                train=False,
+                download=download_datasets,
+                transform=mnist_transforms,
             ),
             batch_size=batch_size,
             shuffle=True,
@@ -188,7 +200,7 @@ def train_mnist(config):
 if __name__ == "__main__":
     # for early stopping
     sched = AsyncHyperBandScheduler()
-    gpu_value="has to be specified"
+    gpu_value = "has to be specified"
     resources_per_trial = {"cpu": 1, "gpu": gpu_value}
     tuner = tune.Tuner(
         tune.with_resources(train_mnist, resources=resources_per_trial),

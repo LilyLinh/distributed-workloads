@@ -1,6 +1,6 @@
 ## Introduction
 
-This example demostrate how to fine tune Stable Diffusion with DreamBooth and Ray Train using OpenShift AI.  
+This example demostrate how to fine tune Stable Diffusion with DreamBooth and Ray Train using OpenShift AI.
 
 ## Credits
 
@@ -8,9 +8,9 @@ The example codes are from:
 1. [Ray dreambooth finetuning](https://docs.ray.io/en/latest/train/examples/pytorch/dreambooth_finetuning.html)
 1. [Ray Train Stable Diffussion Notebook](https://github.com/GoogleCloudPlatform/ai-on-gke/blob/main/ray-on-gke/examples/notebooks/raytrain-stablediffusion.ipynb)
 
-## Overview 
+## Overview
 
-In this example, a workbench will be automatically created with a few notebooks to explore [Ray](https://docs.ray.io/en/latest/index.html). 
+In this example, a workbench will be automatically created with a few notebooks to explore [Ray](https://docs.ray.io/en/latest/index.html).
 
 [Kueue](https://kueue.sigs.k8s.io/docs/overview/) is used in the example and has native integeration with RayJob and RayCluster.
 
@@ -20,7 +20,7 @@ In this example, a workbench will be automatically created with a few notebooks 
 | [Ray Train with Stable Diffusion](notebook/01%20raytrain-stablediffusion.ipynb) | Using Ray Train to distribute training
 | [Archiving and uploading model](notebook/02%20raytrain-stablediffusion-upload-model.ipynb) | Using Torch model archiver and upload to S3 bucket
 | [Serving using KServe](notebook/03%20raytrain-stablediffusion-model-serving.ipynb) | Setting up KServe with PyTorch |
-| [Text-to-Image Chatbot](notebook/04%20raytrain-stablediffusion-streamlit.ipynb) | Deploying Streamlit chat app 
+| [Text-to-Image Chatbot](notebook/04%20raytrain-stablediffusion-streamlit.ipynb) | Deploying Streamlit chat app
 
 ## Prerequisite
 
@@ -30,9 +30,9 @@ In this example, a workbench will be automatically created with a few notebooks 
 
 * Ensure there is at least 1 worker node that has a GPU. On AWS, this can be a p3.8xlarge instance, otherwise you can run the makefile target to add a `machineset` for a single replica of p3.8xlarge.
 
-> [!NOTE]  
+> [!NOTE]
 > Not all p3 instances are available in every availabilty zones. You can run the following command to check:
-> ```bash 
+> ```bash
 > aws ec2 describe-instance-type-offerings --location-type availability-zone --filters Name=instance-type,Values=p3.8xlarge --region <region>
 > ```
 
@@ -48,15 +48,15 @@ In this example, a workbench will be automatically created with a few notebooks 
 Install and setup operators needed for GPU to be available in the cluster (Node Feature Discovery Operator, NVIDIA GPU Operator)
 
 * Ensure there is a RWX available storage class, such as `
-ocs-storagecluster-cephfs`. The `stable-diffusion-shared-storage` pvc uses cephfs otherwise update the PVC resource. 
+ocs-storagecluster-cephfs`. The `stable-diffusion-shared-storage` pvc uses cephfs otherwise update the PVC resource.
 
-  You can install OpenShift Data Foundation (ODF) to achieve this. ODF will require a minimum of 3 worker nodes to start with. 
+  You can install OpenShift Data Foundation (ODF) to achieve this. ODF will require a minimum of 3 worker nodes to start with.
 
   ```bash
   make deploy-odf
   ```
 
-  The CSI plugin daemonset will have to be updated to tolerate the GPU taint. 
+  The CSI plugin daemonset will have to be updated to tolerate the GPU taint.
 
   ```bash
   oc apply -f yaml/operators/rook-ceph-operator-config.yaml
@@ -77,7 +77,7 @@ Run the makefile target. This creates a Data Science Project called `distributed
 * A single workbench with the git repository already cloned inside
 * Kueue will be configured. A `LocalQueue` in the project that uses the `distributed-cq` ClusterQueue
 
-> [!WARNING]  
+> [!WARNING]
 > The setup script will delete all clusterqueues and resourceflavors in the cluster.
 
 ```bash
@@ -107,7 +107,7 @@ Once the model hase been fine tuned, you can [generate](https://docs.ray.io/en/l
     --prompts="$YOUR_PROMPT" \
     --num_samples_per_prompt=9 \
     --use_ray_data
-```    
+```
 
 The images will be shown using `matplotlib`.
 
@@ -122,7 +122,7 @@ The images will be shown using `matplotlib`.
 
 Use `04 raytrain-stablediffusion-streamlit.ipynb` to build the [Streamlit app](app/app.py) using OpenShift. OpenShift provides several ways to build you app to integerate with the model serving.
 
-The demo uses the oc [cli](https://docs.openshift.com/container-platform/4.15/applications/creating_applications/creating-applications-using-cli.html) with a source build strategy from a git repository to build the application. A [BuildConfig](https://docs.openshift.com/container-platform/4.15/cicd/builds/understanding-image-builds.html) is created. A BuildConfig object is the definition of the entire build process and defines the Source-to-Image (S2I) build. 
+The demo uses the oc [cli](https://docs.openshift.com/container-platform/4.15/applications/creating_applications/creating-applications-using-cli.html) with a source build strategy from a git repository to build the application. A [BuildConfig](https://docs.openshift.com/container-platform/4.15/cicd/builds/understanding-image-builds.html) is created. A BuildConfig object is the definition of the entire build process and defines the Source-to-Image (S2I) build.
 
 Once the app is deployed, you can access it via the route.
 

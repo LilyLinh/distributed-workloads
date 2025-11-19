@@ -1,11 +1,24 @@
-import os, gzip, shutil
+import gzip
+import os
+import shutil
+
 from minio import Minio
 from torchvision import datasets
 from torchvision.transforms import Compose, ToTensor
 
+
 def main(dataset_path):
-    # Download and Load dataset 
-    if all(var in os.environ for var in ["AWS_DEFAULT_ENDPOINT","AWS_ACCESS_KEY_ID","AWS_SECRET_ACCESS_KEY","AWS_STORAGE_BUCKET","AWS_STORAGE_BUCKET_MNIST_DIR"]):
+    # Download and Load dataset
+    if all(
+        var in os.environ
+        for var in [
+            "AWS_DEFAULT_ENDPOINT",
+            "AWS_ACCESS_KEY_ID",
+            "AWS_SECRET_ACCESS_KEY",
+            "AWS_STORAGE_BUCKET",
+            "AWS_STORAGE_BUCKET_MNIST_DIR",
+        ]
+    ):
         print("Using provided storage bucket to download datasets...")
         dataset_dir = os.path.join(dataset_path, "MNIST/raw")
         endpoint = os.environ.get("AWS_DEFAULT_ENDPOINT")
@@ -28,7 +41,7 @@ def main(dataset_path):
             access_key=access_key,
             secret_key=secret_key,
             cert_check=False,
-            secure=secure
+            secure=secure,
         )
         if not os.path.exists(dataset_dir):
             os.makedirs(dataset_dir)
@@ -36,26 +49,26 @@ def main(dataset_path):
             print(f"Directory '{dataset_dir}' already exists")
 
         # To download datasets from storage bucket's specific directory, use prefix to provide directory name
-        prefix=os.environ.get("AWS_STORAGE_BUCKET_MNIST_DIR")
+        prefix = os.environ.get("AWS_STORAGE_BUCKET_MNIST_DIR")
         print(f"Storage bucket MNIST directory prefix: {prefix}\n")
 
         # download all files from prefix folder of storage bucket recursively
-        for item in client.list_objects(
-            bucket_name, prefix=prefix, recursive=True
-        ):  
-            file_name=item.object_name[len(prefix)+1:]
+        for item in client.list_objects(bucket_name, prefix=prefix, recursive=True):
+            file_name = item.object_name[len(prefix) + 1 :]
             dataset_file_path = os.path.join(dataset_dir, file_name)
             print(f"Downloading dataset file {file_name} to {dataset_file_path}..")
             if not os.path.exists(dataset_file_path):
-                client.fget_object(
-                    bucket_name, item.object_name, dataset_file_path
-                )
-                # Unzip files -- 
+                client.fget_object(bucket_name, item.object_name, dataset_file_path)
+                # Unzip files --
                 ## Sample zipfilepath : ../data/MNIST/raw/t10k-images-idx3-ubyte.gz
                 with gzip.open(dataset_file_path, "rb") as f_in:
-                    filename=file_name.split(".")[0]    #-> t10k-images-idx3-ubyte
-                    file_path=("/".join(dataset_file_path.split("/")[:-1]))     #->../data/MNIST/raw
-                    full_file_path=os.path.join(file_path,filename)     #->../data/MNIST/raw/t10k-images-idx3-ubyte
+                    filename = file_name.split(".")[0]  # -> t10k-images-idx3-ubyte
+                    file_path = "/".join(
+                        dataset_file_path.split("/")[:-1]
+                    )  # ->../data/MNIST/raw
+                    full_file_path = os.path.join(
+                        file_path, filename
+                    )  # ->../data/MNIST/raw/t10k-images-idx3-ubyte
                     print(f"Extracting {dataset_file_path} to {file_path}..")
 
                     with open(full_file_path, "wb") as f_out:
@@ -68,20 +81,29 @@ def main(dataset_path):
         download_datasets = False
     else:
         print("Using default MNIST mirror references to download datasets ...")
-        print("Skipped usage of S3 storage bucket, because required environment variables aren't provided!\nRequired environment variables : AWS_DEFAULT_ENDPOINT, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET, AWS_STORAGE_BUCKET_MNIST_DIR")
+        print(
+            "Skipped usage of S3 storage bucket, because required environment variables aren't provided!\nRequired environment variables : AWS_DEFAULT_ENDPOINT, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET, AWS_STORAGE_BUCKET_MNIST_DIR"
+        )
         download_datasets = True
 
     datasets.MNIST(
-        dataset_path, 
-        train=False, 
-        download=download_datasets, 
-        transform=Compose([ToTensor()])
-        )
+        dataset_path,
+        train=False,
+        download=download_datasets,
+        transform=Compose([ToTensor()]),
+    )
+
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="MNIST dataset download")
-    parser.add_argument('--dataset_path', type=str, default="../data", help='Path to MNIST datasets (default: ../data)')
+    parser.add_argument(
+        "--dataset_path",
+        type=str,
+        default="../data",
+        help="Path to MNIST datasets (default: ../data)",
+    )
 
     args = parser.parse_args()
 

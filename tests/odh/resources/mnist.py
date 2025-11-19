@@ -12,22 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import gzip
 import os
+import shutil
 
-import torch
 import requests
+import torch
+from minio import Minio
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks.progress import TQDMProgressBar
 from torch import nn
 from torch.nn import functional as F
-from torch.utils.data import DataLoader, random_split, RandomSampler
+from torch.utils.data import DataLoader, RandomSampler, random_split
 from torchmetrics import Accuracy
 from torchvision import transforms
 from torchvision.datasets import MNIST
-import gzip
-import shutil
-from minio import Minio
-
 
 PATH_DATASETS = os.environ.get("PATH_DATASETS", ".")
 BATCH_SIZE = 256 if torch.cuda.is_available() else 64
@@ -41,10 +40,17 @@ print("MASTER_PORT: is ", os.getenv("MASTER_PORT"))
 
 
 STORAGE_BUCKET_EXISTS = "{{.StorageBucketDefaultEndpointExists}}"
-print("STORAGE_BUCKET_EXISTS: ",STORAGE_BUCKET_EXISTS)
-print(f"{'Storage_Bucket_Default_Endpoint : is {{.StorageBucketDefaultEndpoint}}' if '{{.StorageBucketDefaultEndpointExists}}' == 'true' else ''}")
-print(f"{'Storage_Bucket_Name : is {{.StorageBucketName}}' if '{{.StorageBucketNameExists}}' == 'true' else ''}")
-print(f"{'Storage_Bucket_Mnist_Directory : is {{.StorageBucketMnistDir}}' if '{{.StorageBucketMnistDirExists}}' == 'true' else ''}")
+print("STORAGE_BUCKET_EXISTS: ", STORAGE_BUCKET_EXISTS)
+print(
+    f"{'Storage_Bucket_Default_Endpoint : is {{.StorageBucketDefaultEndpoint}}' if '{{.StorageBucketDefaultEndpointExists}}' == 'true' else ''}"
+)
+print(
+    f"{'Storage_Bucket_Name : is {{.StorageBucketName}}' if '{{.StorageBucketNameExists}}' == 'true' else ''}"
+)
+print(
+    f"{'Storage_Bucket_Mnist_Directory : is {{.StorageBucketMnistDir}}' if '{{.StorageBucketMnistDirExists}}' == 'true' else ''}"
+)
+
 
 class LitMNIST(LightningModule):
     def __init__(self, data_dir=PATH_DATASETS, hidden_size=64, learning_rate=2e-4):
@@ -125,7 +131,10 @@ class LitMNIST(LightningModule):
         # download
         print("Downloading MNIST dataset...")
 
-        if "{{.StorageBucketDefaultEndpointExists}}" == "true" and "{{.StorageBucketDefaultEndpoint}}" != "":
+        if (
+            "{{.StorageBucketDefaultEndpointExists}}" == "true"
+            and "{{.StorageBucketDefaultEndpoint}}" != ""
+        ):
             print("Using storage bucket to download datasets...")
             dataset_dir = os.path.join(self.data_dir, "MNIST/raw")
             endpoint = "{{.StorageBucketDefaultEndpoint}}"
@@ -146,7 +155,7 @@ class LitMNIST(LightningModule):
                 access_key=access_key,
                 secret_key=secret_key,
                 cert_check=False,
-                secure=secure
+                secure=secure,
             )
 
             if not os.path.exists(dataset_dir):
@@ -155,18 +164,14 @@ class LitMNIST(LightningModule):
                 print(f"Directory '{dataset_dir}' already exists")
 
             # To download datasets from storage bucket's specific directory, use prefix to provide directory name
-            prefix="{{.StorageBucketMnistDir}}"
+            prefix = "{{.StorageBucketMnistDir}}"
             # download all files from prefix folder of storage bucket recursively
-            for item in client.list_objects(
-                bucket_name, prefix=prefix, recursive=True
-            ):  
-                file_name=item.object_name[len(prefix)+1:]
+            for item in client.list_objects(bucket_name, prefix=prefix, recursive=True):
+                file_name = item.object_name[len(prefix) + 1 :]
                 dataset_file_path = os.path.join(dataset_dir, file_name)
                 print(dataset_file_path)
                 if not os.path.exists(dataset_file_path):
-                    client.fget_object(
-                        bucket_name, item.object_name, dataset_file_path
-                    )
+                    client.fget_object(bucket_name, item.object_name, dataset_file_path)
                 else:
                     print(f"File-path '{dataset_file_path}' already exists")
                 # Unzip files
@@ -198,7 +203,11 @@ class LitMNIST(LightningModule):
             )
 
     def train_dataloader(self):
-        return DataLoader(self.mnist_train, batch_size=BATCH_SIZE, sampler=RandomSampler(self.mnist_train, num_samples=1000))
+        return DataLoader(
+            self.mnist_train,
+            batch_size=BATCH_SIZE,
+            sampler=RandomSampler(self.mnist_train, num_samples=1000),
+        )
 
     def val_dataloader(self):
         return DataLoader(self.mnist_val, batch_size=BATCH_SIZE)

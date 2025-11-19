@@ -63,18 +63,18 @@ By following this notebook, you'll gain hands-on experience in setting up a **fe
 ![](./docs/02.png)
 
 * Once the project is created, click on _Create a workbench_:
-  
+
 ![](./docs/03.png)
 
 * Then create a workbench with the following settings:
-  
+
     * Select the `PyTorch` (or the `ROCm-PyTorch`) notebook image:
 
     ![](./docs/04a.png)
 
-    * Select the _Small_ container size and a sufficient persistent storage volume. 
+    * Select the _Small_ container size and a sufficient persistent storage volume.
     * In _'Environment variables'_ section, use variable type as _Secret_ and provide key/value pair to store _HF-TOKEN_ as a kubernetes secret :
-  
+
     ![](./docs/04b.png)
 
     * Click on _Create connection_ to create a workbench connection to your S3 compatible storage bucket:
@@ -97,7 +97,7 @@ By following this notebook, you'll gain hands-on experience in setting up a **fe
 
 
     * Review the configuration and click _Create workbench_:
- 
+
     ![](./docs/04d.png)
 
 * From "Workbenches" page, click on _Open_ when the workbench you've just created becomes ready:
@@ -118,7 +118,7 @@ You can now proceed with the instructions from the notebook. Enjoy!
 >   * The examples use gated Llama models that require a token (e.g., https://huggingface.co/meta-llama/Llama-3.1-8B)
 >   * Set the `HF_TOKEN` environment variable in your job configuration
 >   * Note: You can skip the token if switching to non-gated models
-> 
+>
 > **Kueue Integration (RHOAI 2.21+):**
 > * If using RHOAI 2.21+, the example supports Kueue integration for workload management:
 >   * When using Kueue:
@@ -127,7 +127,7 @@ You can now proceed with the instructions from the notebook. Enjoy!
 >   * You can skip Kueue usage by:
 >     * Disabling the existing `kueue-validating-admission-policy-binding`
 >     * Omitting the local-queue-name label in your job configuration
-> 
+>
 > **Note:** Kueue Enablement via Validating Admission Policy was introduced in RHOAI-2.21. You can skip this section if using an earlier RHOAI release version.
 
 ### Configure Kueue (Optional)
@@ -149,5 +149,3 @@ You can now proceed with the instructions from the notebook. Enjoy!
     ```console
     oc apply -f workshops/kueue/resources/team1_local_queue.yaml -n <your-namespace>
     ```
-  
-

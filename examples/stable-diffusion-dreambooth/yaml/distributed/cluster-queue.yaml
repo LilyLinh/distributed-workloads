@@ -3,11 +3,11 @@ kind: ClusterQueue
 metadata:
   name: "distributed-cq"
 spec:
-  namespaceSelector:   
+  namespaceSelector:
     matchLabels:
       kubernetes.io/metadata.name: distributed
   resourceGroups:
-  - coveredResources: 
+  - coveredResources:
     - cpu
     - memory
     flavors:

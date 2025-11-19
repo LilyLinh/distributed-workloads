@@ -1,11 +1,13 @@
-from datasets import load_dataset
 import json
 import os
 
-cache_dir="../../datasets"
+from datasets import load_dataset
+
+cache_dir = "../../datasets"
 if not os.path.exists(cache_dir):
-    cache_dir=""
+    cache_dir = ""
 dataset = load_dataset("gsm8k", "main", cache_dir=cache_dir)
+
 
 def gsm8k_qa_tokens_template():
     dataset = load_dataset("gsm8k", "main")
@@ -24,10 +26,12 @@ def gsm8k_qa_tokens_template():
     for key, ds in dataset_splits.items():
         with open(f"data/{key}.jsonl", "w") as f:
             for item in ds:
-                i = {"messages": (
-                    f"<START_Q>{item['question']}<END_Q>"
-                    f"<START_A>{item['answer']}<END_A>"
-                )}
+                i = {
+                    "messages": (
+                        f"<START_Q>{item['question']}<END_Q>"
+                        f"<START_A>{item['answer']}<END_A>"
+                    )
+                }
                 f.write(json.dumps(i) + "\n")
 
 
@@ -60,10 +64,12 @@ def gsm8k_qa_no_tokens_template():
     for key, ds in dataset_splits.items():
         with open(f"data/{key}.jsonl", "w") as f:
             for item in ds:
-                i = {"messages": [
-                    {"role": "user", "content": item['question']},
-                    {"role": "assistant", "content": item['answer']},
-                ]}
+                i = {
+                    "messages": [
+                        {"role": "user", "content": item["question"]},
+                        {"role": "assistant", "content": item["answer"]},
+                    ]
+                }
                 f.write(json.dumps(i) + "\n")
 
 
@@ -77,10 +83,12 @@ def gsm8k_hf_chat_template():
     for key, ds in dataset_splits.items():
         with open(f"data/{key}.jsonl", "w") as f:
             for item in ds:
-                i = {"messages": [
-                    {"role": "user", "content": item['question']},
-                    {"role": "assistant", "content": item['answer']},
-                ]}
+                i = {
+                    "messages": [
+                        {"role": "user", "content": item["question"]},
+                        {"role": "assistant", "content": item["answer"]},
+                    ]
+                }
                 f.write(json.dumps(i) + "\n")
 
 

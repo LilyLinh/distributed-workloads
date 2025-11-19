@@ -62,4 +62,3 @@ go test ./tests/trainer/ -v
 ```bash
 go test ./tests/trainer -run TestCustomTrainingRuntimesAvailable -v
 ```
-

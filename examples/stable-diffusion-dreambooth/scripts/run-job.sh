@@ -10,7 +10,7 @@ echo
 
 if pc get job "${JOB_NAME}" -n "${NAMESPACE}" &> /dev/null; then
     echo "Job $JOB_NAME exists in namespace $NAMESPACE."
-    oc delete -f ${YAML_FILE}    
+    oc delete -f ${YAML_FILE}
 fi
 
 oc create -f ${YAML_FILE}
@@ -24,6 +24,6 @@ until oc get job ${JOB_NAME} -n ${NAMESPACE} -o jsonpath='{.status.conditions[?(
     fi; \
     echo "Job ${JOB_NAME} is still running..."; \
     sleep 10; \
-done	
+done
 
 oc delete -f ${YAML_FILE}

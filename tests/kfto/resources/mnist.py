@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch
 import logging
+import os
+
+import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.distributed as dist
-
-from torch.utils.data import DataLoader, Dataset
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data.distributed import DistributedSampler
 import torchvision.transforms as transforms
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader, Dataset
+from torch.utils.data.distributed import DistributedSampler
 from torchvision.datasets import MNIST
-import os
 
 # Configure logger.
 log_formatter = logging.Formatter(
@@ -34,23 +34,27 @@ console_handler = logging.StreamHandler()
 console_handler.setFormatter(log_formatter)
 logger.addHandler(console_handler)
 logger.setLevel(logging.INFO)
-    
+
+
 def ddp_setup(backend="nccl"):
     """Setup for Distributed Data Parallel with specified backend."""
     # If CUDA is not available, use CPU as the fallback
-    if torch.cuda.is_available() and backend=="nccl":
+    if torch.cuda.is_available() and backend == "nccl":
         # Check GPU availability
         num_devices = torch.cuda.device_count()
         device = int(os.environ.get("LOCAL_RANK", 0))  # Default to device 0
         if device >= num_devices:
-            logger.warning(f"Warning: Invalid device ordinal {device}. Defaulting to device 0.")
+            logger.warning(
+                f"Warning: Invalid device ordinal {device}. Defaulting to device 0."
+            )
             device = 0
         torch.cuda.set_device(device)
     else:
         # If no GPU is available, use Gloo backend (for CPU-only environments)
         logger.info("No GPU available, falling back to CPU.")
-        backend="gloo"
+        backend = "gloo"
     dist.init_process_group(backend=backend)
+
 
 class Net(nn.Module):
     def __init__(self):
@@ -70,6 +74,7 @@ class Net(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
+
 class Trainer:
     def __init__(
         self,
@@ -80,11 +85,12 @@ class Trainer:
         snapshot_path: str,
         backend: str,
     ) -> None:
-        self.local_rank = int(os.environ.get("LOCAL_RANK", -1))  # Ensure fallback if LOCAL_RANK isn't set
+        self.local_rank = int(
+            os.environ.get("LOCAL_RANK", -1)
+        )  # Ensure fallback if LOCAL_RANK isn't set
         self.global_rank = int(os.environ["RANK"])
 
-
-        self.model=model
+        self.model = model
         self.train_data = train_data
         self.optimizer = optimizer
         self.save_every = save_every
@@ -97,11 +103,11 @@ class Trainer:
             self._load_snapshot(snapshot_path)
 
         # Move model to the appropriate device (GPU/CPU)
-        if torch.cuda.is_available() and self.backend=="nccl":
-            self.device = torch.device(f'cuda:{self.local_rank}')
+        if torch.cuda.is_available() and self.backend == "nccl":
+            self.device = torch.device(f"cuda:{self.local_rank}")
             self.model = DDP(self.model.to(self.device), device_ids=[self.local_rank])
         else:
-            self.device=torch.device('cpu')
+            self.device = torch.device("cpu")
             self.model = DDP(self.model.to(self.device))
         logger.info(f"Using device: {self.device}")
 
@@ -114,10 +120,14 @@ class Trainer:
 
     def _run_epoch(self, epoch, backend):
         b_sz = len(next(iter(self.train_data))[0])
-        if torch.cuda.is_available() and backend=="nccl":
-            logger.info(f"[GPU{self.global_rank}] Epoch {epoch} | Batchsize: {b_sz} | Steps: {len(self.train_data)}")
+        if torch.cuda.is_available() and backend == "nccl":
+            logger.info(
+                f"[GPU{self.global_rank}] Epoch {epoch} | Batchsize: {b_sz} | Steps: {len(self.train_data)}"
+            )
         else:
-            logger.info(f"[CPU{self.global_rank}] Epoch {epoch} | Batchsize: {b_sz} | Steps: {len(self.train_data)}")
+            logger.info(
+                f"[CPU{self.global_rank}] Epoch {epoch} | Batchsize: {b_sz} | Steps: {len(self.train_data)}"
+            )
         if isinstance(self.train_data.sampler, DistributedSampler):
             self.train_data.sampler.set_epoch(epoch)
         for source, targets in self.train_data:
@@ -127,7 +137,11 @@ class Trainer:
 
     def _save_snapshot(self, epoch):
         snapshot = {
-            "MODEL_STATE": self.model.module.state_dict() if torch.cuda.is_available() else self.model.state_dict(),
+            "MODEL_STATE": (
+                self.model.module.state_dict()
+                if torch.cuda.is_available()
+                else self.model.state_dict()
+            ),
             "EPOCHS_RUN": epoch,
         }
         torch.save(snapshot, self.snapshot_path)
@@ -140,12 +154,14 @@ class Trainer:
                 self._save_snapshot(epoch)
 
 
-def load_train_objs(dataset_path: str,lr: float):
+def load_train_objs(dataset_path: str, lr: float):
     """Load dataset, model, and optimizer."""
-    train_set = MNIST(dataset_path,
+    train_set = MNIST(
+        dataset_path,
         train=False,
         download=False,
-        transform=transforms.Compose([transforms.ToTensor()]))
+        transform=transforms.Compose([transforms.ToTensor()]),
+    )
     model = Net()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     return train_set, model, optimizer
@@ -158,28 +174,69 @@ def prepare_dataloader(dataset: Dataset, batch_size: int, useGpu: bool):
         batch_size=batch_size,
         pin_memory=useGpu,
         shuffle=False,
-        sampler=DistributedSampler(dataset)
+        sampler=DistributedSampler(dataset),
     )
 
 
-def main(epochs: int, save_every: int, batch_size: int, lr: float, dataset_path: str, snapshot_path: str, backend: str):
+def main(
+    epochs: int,
+    save_every: int,
+    batch_size: int,
+    lr: float,
+    dataset_path: str,
+    snapshot_path: str,
+    backend: str,
+):
     ddp_setup(backend)
     dataset, model, optimizer = load_train_objs(dataset_path, lr)
-    train_loader = prepare_dataloader(dataset, batch_size, torch.cuda.is_available() and backend=="nccl")
-    trainer = Trainer(model, train_loader, optimizer, save_every, snapshot_path, backend)
+    train_loader = prepare_dataloader(
+        dataset, batch_size, torch.cuda.is_available() and backend == "nccl"
+    )
+    trainer = Trainer(
+        model, train_loader, optimizer, save_every, snapshot_path, backend
+    )
     trainer.train(epochs, backend)
     dist.destroy_process_group()
 
+
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="Distributed MNIST Training")
-    parser.add_argument('--epochs', type=int, required=True, help='Total epochs to train the model')
-    parser.add_argument('--save_every', type=int, required=True, help='How often to save a snapshot')
-    parser.add_argument('--batch_size', type=int, default=64, help='Input batch size on each device (default: 64)')
-    parser.add_argument('--lr', type=float, default=1e-3, help='Learning rate (default: 1e-3)')
-    parser.add_argument('--dataset_path', type=str, default="../data", help='Path to MNIST datasets (default: ../data)')
-    parser.add_argument('--snapshot_path', type=str, default="snapshot_mnist.pt", help='Path to save snapshots (default: snapshot_mnist.pt)')
-    parser.add_argument('--backend', type=str, choices=['gloo', 'nccl'], default='nccl', help='Distributed backend type (default: nccl)')
+    parser.add_argument(
+        "--epochs", type=int, required=True, help="Total epochs to train the model"
+    )
+    parser.add_argument(
+        "--save_every", type=int, required=True, help="How often to save a snapshot"
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=64,
+        help="Input batch size on each device (default: 64)",
+    )
+    parser.add_argument(
+        "--lr", type=float, default=1e-3, help="Learning rate (default: 1e-3)"
+    )
+    parser.add_argument(
+        "--dataset_path",
+        type=str,
+        default="../data",
+        help="Path to MNIST datasets (default: ../data)",
+    )
+    parser.add_argument(
+        "--snapshot_path",
+        type=str,
+        default="snapshot_mnist.pt",
+        help="Path to save snapshots (default: snapshot_mnist.pt)",
+    )
+    parser.add_argument(
+        "--backend",
+        type=str,
+        choices=["gloo", "nccl"],
+        default="nccl",
+        help="Distributed backend type (default: nccl)",
+    )
     args = parser.parse_args()
 
     main(
@@ -189,5 +246,5 @@ if __name__ == "__main__":
         lr=args.lr,
         dataset_path=args.dataset_path,
         snapshot_path=args.snapshot_path,
-        backend=args.backend
+        backend=args.backend,
     )

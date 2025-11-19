@@ -1,16 +1,17 @@
 import argparse
-from filelock import FileLock
 import functools
 import json
 import math
 import os
-from pathlib import Path
 import tempfile
 import time
-import tree
-from typing import Tuple
 import urllib
+from pathlib import Path
+from typing import Tuple
 from urllib.parse import urljoin
+
+import tree
+from filelock import FileLock
 
 try:
     import deepspeed  # noqa: F401
@@ -19,29 +20,27 @@ except ImportError as e:
         "Please install deepspeed with `pip install --user deepspeed`."
     ) from e
 
-from accelerate import Accelerator, DeepSpeedPlugin
-from accelerate.utils import DummyOptim, DummyScheduler, set_seed
+import ray
+import ray.util.scheduling_strategies
 import torch
 import torch.nn as nn
 import tqdm
+from accelerate import Accelerator, DeepSpeedPlugin
+from accelerate.utils import DummyOptim, DummyScheduler, set_seed
+from peft import LoraConfig, get_peft_model
+from ray import train
+from ray.train import Checkpoint
+from ray.train.torch import TorchTrainer
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
     get_linear_schedule_with_warmup,
 )
-
-from peft import LoraConfig, get_peft_model
-import ray
-from ray import train
-import ray.util.scheduling_strategies
-from ray.train.torch import TorchTrainer
-from ray.train import Checkpoint
-
 from utils import (
-    get_checkpoint_and_refs_dir,
-    get_mirror_link,
     download_model,
+    get_checkpoint_and_refs_dir,
     get_download_path,
+    get_mirror_link,
 )
 
 urllib.parse.uses_relative.append("s3")
@@ -119,11 +118,17 @@ def get_number_of_params(model: nn.Module):
 
 def collate_fn(batch, tokenizer, block_size, device):
     out_batch = tokenizer(
-        list(map(lambda m: tokenizer.apply_chat_template(m,
-                                                         tokenize=False,
-                                                         add_generation_prompt=False,
-                                                         add_special_tokens=False),
-                 batch["messages"])),
+        list(
+            map(
+                lambda m: tokenizer.apply_chat_template(
+                    m,
+                    tokenize=False,
+                    add_generation_prompt=False,
+                    add_special_tokens=False,
+                ),
+                batch["messages"],
+            )
+        ),
         padding="max_length",
         max_length=block_size,
         truncation=True,
@@ -280,9 +285,11 @@ def training_function(kwargs: dict):
     train_ds_len = len(list(train_ds.iter_batches(batch_size=1)))
 
     _test_tokenizer(args.model_name)
-    tokenizer = get_tokenizer(model_name=args.model_name,
-                              chat_template=chat_template,
-                              special_tokens=special_tokens)
+    tokenizer = get_tokenizer(
+        model_name=args.model_name,
+        chat_template=chat_template,
+        special_tokens=special_tokens,
+    )
     collate_partial = functools.partial(
         collate_fn,
         tokenizer=tokenizer,
@@ -578,71 +585,133 @@ def training_function(kwargs: dict):
 def parse_args():
     parser = argparse.ArgumentParser(description="LLM fine-tuning with DeepSpeed")
 
-    parser.add_argument("--model-name", type=str, default="meta-llama/Meta-Llama-3.1-8B")
+    parser.add_argument(
+        "--model-name", type=str, default="meta-llama/Meta-Llama-3.1-8B"
+    )
 
-    parser.add_argument("--train-path", type=str, default="./data/train.jsonl",
-                        help="Path to training jsonl file")
+    parser.add_argument(
+        "--train-path",
+        type=str,
+        default="./data/train.jsonl",
+        help="Path to training jsonl file",
+    )
 
-    parser.add_argument("--test-path", type=str, default="./data/test.jsonl",
-                        help="Path to testing jsonl file")
+    parser.add_argument(
+        "--test-path",
+        type=str,
+        default="./data/test.jsonl",
+        help="Path to testing jsonl file",
+    )
 
-    parser.add_argument("--dataset-config", type=str, default="./data/config.json",
-                        help="Path to the config file")
+    parser.add_argument(
+        "--dataset-config",
+        type=str,
+        default="./data/config.json",
+        help="Path to the config file",
+    )
 
-    parser.add_argument("--num-devices", "-nd", type=int, default=4,
-                        help="Number of devices to use.")
+    parser.add_argument(
+        "--num-devices", "-nd", type=int, default=4, help="Number of devices to use."
+    )
 
-    parser.add_argument("--mx", type=str, choices=["no", "fp16", "bf16", "fp8"], default="bf16",
-                        help="Whether to use mixed precision. Choose between fp16 and bf16 (bfloat16). "
-                             "Bf16 requires PyTorch >= 1.10 and an Nvidia Ampere GPU.")
+    parser.add_argument(
+        "--mx",
+        type=str,
+        choices=["no", "fp16", "bf16", "fp8"],
+        default="bf16",
+        help="Whether to use mixed precision. Choose between fp16 and bf16 (bfloat16). "
+        "Bf16 requires PyTorch >= 1.10 and an Nvidia Ampere GPU.",
+    )
 
-    parser.add_argument("--ds-config", type=str, default="./deepspeed_configs/zero_3_offload_optim_param.json",
-                        help="Deepspeed config json to use.")
+    parser.add_argument(
+        "--ds-config",
+        type=str,
+        default="./deepspeed_configs/zero_3_offload_optim_param.json",
+        help="Deepspeed config json to use.",
+    )
 
-    parser.add_argument("--lora", action="store_true", default=False,
-                        help="If passed, will enable parameter efficient fine-tuning with LoRA.")
-    
-    parser.add_argument("--lora-config", type=str, default="./lora_configs/lora.json",
-                        help="Lora config json to use.")
+    parser.add_argument(
+        "--lora",
+        action="store_true",
+        default=False,
+        help="If passed, will enable parameter efficient fine-tuning with LoRA.",
+    )
 
-    parser.add_argument("--num-epochs", type=int, default=1,
-                        help="Number of epochs to train for.")
+    parser.add_argument(
+        "--lora-config",
+        type=str,
+        default="./lora_configs/lora.json",
+        help="Lora config json to use.",
+    )
 
-    parser.add_argument("--lr", type=float, default=1e-4,
-                        help="Learning rate to use.")
+    parser.add_argument(
+        "--num-epochs", type=int, default=1, help="Number of epochs to train for."
+    )
 
-    parser.add_argument("--ctx-len", type=int, default=512,
-                        help="Maximum context length for the model input sequences.")
+    parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate to use.")
 
-    parser.add_argument("--batch-size-per-device", "-bs", type=int, default=16,
-                        help="Batch size to use per device.")
+    parser.add_argument(
+        "--ctx-len",
+        type=int,
+        default=512,
+        help="Maximum context length for the model input sequences.",
+    )
 
-    parser.add_argument("--eval-batch-size-per-device", type=int, default=64,
-                        help="Batch size to use per device (For evaluation).")
+    parser.add_argument(
+        "--batch-size-per-device",
+        "-bs",
+        type=int,
+        default=16,
+        help="Batch size to use per device.",
+    )
 
-    parser.add_argument("--grad-accum", type=int, default=1,
-                        help="Gradient accumulation steps.")
+    parser.add_argument(
+        "--eval-batch-size-per-device",
+        type=int,
+        default=64,
+        help="Batch size to use per device (For evaluation).",
+    )
 
-    parser.add_argument("--output-dir", type=str, default="/tmp",
-                        help="Path to output directory.")
+    parser.add_argument(
+        "--grad-accum", type=int, default=1, help="Gradient accumulation steps."
+    )
 
-    parser.add_argument("--storage-path", type=str,
-                        help="Path to results and checkpoints storage")
+    parser.add_argument(
+        "--output-dir", type=str, default="/tmp", help="Path to output directory."
+    )
 
-    parser.add_argument("--no-grad-ckpt", action="store_true",
-                        help="If passed, will not use gradient checkpointing.")
+    parser.add_argument(
+        "--storage-path", type=str, help="Path to results and checkpoints storage"
+    )
 
-    parser.add_argument("--num-checkpoints-to-keep", type=int, default=1,
-                        help="Number of checkpoints to keep, if None, all checkpoints will be kept, "
-                             "if set to n>=1, the top n checkpoint with min. evaluation perplexity "
-                             "will be kept.")
+    parser.add_argument(
+        "--no-grad-ckpt",
+        action="store_true",
+        help="If passed, will not use gradient checkpointing.",
+    )
 
-    parser.add_argument("--stop-perplexity", type=float, default=0,
-                        help="Target perplexity to reach after which to stop training. Default is 0. "
-                             "If 0, training will not stop on perplexity.")
+    parser.add_argument(
+        "--num-checkpoints-to-keep",
+        type=int,
+        default=1,
+        help="Number of checkpoints to keep, if None, all checkpoints will be kept, "
+        "if set to n>=1, the top n checkpoint with min. evaluation perplexity "
+        "will be kept.",
+    )
 
-    parser.add_argument("--as-test", action="store_true",
-                        help="If passed, will run the script in test mode.")
+    parser.add_argument(
+        "--stop-perplexity",
+        type=float,
+        default=0,
+        help="Target perplexity to reach after which to stop training. Default is 0. "
+        "If 0, training will not stop on perplexity.",
+    )
+
+    parser.add_argument(
+        "--as-test",
+        action="store_true",
+        help="If passed, will run the script in test mode.",
+    )
 
     args = parser.parse_args()
 

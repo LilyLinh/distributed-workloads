@@ -20,7 +20,7 @@ This example notebook provides a step-by-step demonstration of building and usin
 
 4. RAG System Implementation
    - **Embedding Model**: `all-MiniLM-L6-v2` (configurable)
-   - **Generator Model**: `granite-3.2-2b-instruct` (configurable) 
+   - **Generator Model**: `granite-3.2-2b-instruct` (configurable)
    - **Vector Store**: Feast’s built-in FeastVectorStore backed by Milvus
    - **Retriever**: Feast’s native RAG retriever FeastRAGRetriever
 
@@ -35,10 +35,10 @@ This example notebook provides a step-by-step demonstration of building and usin
 
 ## Running the example
 From the workbench, clone this repository: https://github.com/opendatahub-io/distributed-workloads.git
-Navigate to the distributed-workloads/examples/kfto-feast-rag directory. Here you will find the following files: 
+Navigate to the distributed-workloads/examples/kfto-feast-rag directory. Here you will find the following files:
 
 * **feature_repo/feature_store.yaml**
-  This is the core configuration file for the RAG project's feature store, configuring a Milvus online store on a local provider. 
+  This is the core configuration file for the RAG project's feature store, configuring a Milvus online store on a local provider.
   * In order to configure Milvus you should:
      - Update `feature_store.yaml` with your Milvus connection details:
        - host
@@ -46,7 +46,7 @@ Navigate to the distributed-workloads/examples/kfto-feast-rag directory. Here yo
        - credentials (if required)
 
 * **__feature_repo/ragproject_repo.py__**
-  This is the Feast feature repository configuration that defines the schema and data source for Wikipedia passage embeddings. 
+  This is the Feast feature repository configuration that defines the schema and data source for Wikipedia passage embeddings.
 
 * **__rag_feast_kfto.ipynb__**
   This is a notebook demonstrating the implementation of a RAG system using Feast feature store. The notebook provides:

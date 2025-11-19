@@ -6,17 +6,17 @@ NAMESPACE=distributed
 WORKER_LABEL_KEY=node-role.kubernetes.io/worker
 
 .PHONY: add-gpu-machineset setup-kueue-premption setup-ray-distributed-training deploy-odf teardown-ray-distributed-training
-	
+
 add-gpu-machineset:
 	@mkdir -p $(WORK_DIR)
-	@$(BASE)/scripts/add-gpu.sh $(WORK_DIR)	
+	@$(BASE)/scripts/add-gpu.sh $(WORK_DIR)
 
 deploy-odf:
 	@node_count=$$(oc get nodes -l $(WORKER_LABEL_KEY) -o json | jq '[.items[] | select(.spec.taints | not)] | length'); \
 	if [ $$node_count -lt 3 ]; then \
 		echo "There are $$node_count worker nodes without Nvidia taint."; \
 		exit 1; \
-	fi 
+	fi
 
 	@oc get nodes -l $(WORKER_LABEL_KEY) -o json | jq '[.items[] | select(.spec.taints | not)]' | jq -r '.[].metadata.name' | while read -r WORKER_NODE; do \
 		echo "Labeling node $$WORKER_NODE with cluster.ocs.openshift.io/openshift-storage"; \
@@ -29,16 +29,16 @@ deploy-odf:
 
 	oc apply -f $(BASE)/yaml/operators/odf-storagecluster.yaml
 	oc apply -f $(BASE)/yaml/operators/odf-storagesystem.yaml
-	
+
 	@until oc get storagecluster ocs-storagecluster -n openshift-storage -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; do \
 		echo "Waiting for ODF Storage Cluster to be ready..."; \
 		sleep 60; \
 	done
-	
+
 	oc patch console.operator cluster -n openshift-storage --type json -p '[{"op": "add", "path": "/spec/plugins", "value": ["odf-console"]}]'
 
 	@echo "ODF is ready"
-	
+
 teardown-ray-distributed-training:
 	-oc delete -f $(BASE)/yaml/distributed/git-clone.yaml
 	-oc delete -f $(BASE)/yaml/distributed/setup-s3.yaml
@@ -53,7 +53,7 @@ setup-ray-distributed-training: teardown-ray-distributed-training
 
 	oc create -f $(BASE)/yaml/distributed/ns.yaml
 	oc create -f $(BASE)/yaml/distributed/rolebinding.yaml
-	
+
 	oc create -n $(NAMESPACE) -f $(BASE)/yaml/distributed/minio.yaml
 
 	@until oc get statefulset minio -n $(NAMESPACE) -o jsonpath='{.status.readyReplicas}' | grep -q '1'; do \
@@ -71,7 +71,7 @@ setup-ray-distributed-training: teardown-ray-distributed-training
 	oc create -f $(BASE)/yaml/distributed/default-flavor.yaml -f $(BASE)/yaml/distributed/gpu-flavor.yaml
 	oc create -f $(BASE)/yaml/distributed/cluster-queue.yaml
 	oc create -f $(BASE)/yaml/distributed/local-queue.yaml
-	oc create -f $(BASE)/yaml/distributed/cephfs-pvc.yaml	
+	oc create -f $(BASE)/yaml/distributed/cephfs-pvc.yaml
 	@$(BASE)/scripts/run-job.sh $(BASE)/yaml/distributed/git-clone.yaml $(NAMESPACE) git-clone-job
 	oc create -f $(BASE)/yaml/distributed/workbench.yaml
 	oc create -f $(BASE)/yaml/distributed/serving-runtime-template.yaml

@@ -19,7 +19,7 @@ mkdir -p $WORK_DIR
 oc get machineset $MS_NAME -n openshift-machine-api -o yaml > $WORK_DIR/ms.yaml
 INSTANCE_TYPE=$(yq eval '.spec.template.spec.providerSpec.value.instanceType' $WORK_DIR/ms.yaml)
 
-echo 
+echo
 echo "Machineset: $MS_NAME"
 echo "New Machineset: $MS_NAME_GPU"
 

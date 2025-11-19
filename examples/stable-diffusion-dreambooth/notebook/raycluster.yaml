@@ -1,11 +1,11 @@
 apiVersion: ray.io/v1
 kind: RayCluster
 metadata:
-  name: stable-diffusion  
+  name: stable-diffusion
   namespace: distributed
   labels:
     kueue.x-k8s.io/queue-name: local-queue
-spec:  
+spec:
   headGroupSpec:
     enableIngress: false
     rayStartParams:
@@ -39,10 +39,10 @@ spec:
                 cpu: '2'
                 memory: 4G
                 nvidia.com/gpu: '0'
-            volumeMounts:    
+            volumeMounts:
               - mountPath: /home/ray/share
-                name: shared-storage             
-        volumes:          
+                name: shared-storage
+        volumes:
           - name: shared-storage
             persistentVolumeClaim:
               claimName: stable-diffusion-shared-storage
@@ -57,7 +57,7 @@ spec:
         block: 'true'
         num-gpus: '1'
       replicas: 4
-      template:        
+      template:
         spec:
           containers:
             - image: 'quay.io/modh/ray:2.35.0-py311-cu121'

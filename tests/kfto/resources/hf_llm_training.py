@@ -16,24 +16,24 @@
 
 
 import argparse
-import logging
-from urllib.parse import urlparse
 import json
+import logging
 import os
+from urllib.parse import urlparse
 
-from datasets import load_dataset, Dataset
+import transformers
 from datasets.distributed import split_dataset_by_node
 from peft import LoraConfig, get_peft_model
-import transformers
 from transformers import (
     AutoModelForCausalLM,
-    AutoTokenizer,
     AutoModelForImageClassification,
-    TrainingArguments,
+    AutoTokenizer,
     DataCollatorForLanguageModeling,
     Trainer,
+    TrainingArguments,
 )
 
+from datasets import Dataset, load_dataset
 
 # Configure logger.
 log_formatter = logging.Formatter(
@@ -70,6 +70,7 @@ def setup_model_and_tokenizer(model_uri, transformer_type, model_dir):
 
     return model, tokenizer
 
+
 # This function is a modified version of the original.
 def load_and_preprocess_data(dataset_file, transformer_type, tokenizer):
     # Load and preprocess the dataset
@@ -77,7 +78,7 @@ def load_and_preprocess_data(dataset_file, transformer_type, tokenizer):
 
     file_path = os.path.realpath(dataset_file)
 
-    dataset=load_dataset('json',data_files=file_path)
+    dataset = load_dataset("json", data_files=file_path)
 
     if transformer_type != AutoModelForImageClassification:
         logger.info(f"Dataset specification: {dataset}")
@@ -86,9 +87,11 @@ def load_and_preprocess_data(dataset_file, transformer_type, tokenizer):
         logger.info("Tokenize dataset")
         # TODO (andreyvelich): Discuss how user should set the tokenizer function.
         dataset = dataset.map(
-            lambda x: tokenizer(x["output"], padding=True, truncation=True, max_length=128),
+            lambda x: tokenizer(
+                x["output"], padding=True, truncation=True, max_length=128
+            ),
             batched=True,
-            keep_in_memory=True
+            keep_in_memory=True,
         )
 
     # Check if dataset contains `train` key. Otherwise, load full dataset to train_data.

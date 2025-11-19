@@ -15,11 +15,11 @@ spec:
         args:
           - |
             git clone https://github.com/opendatahub-io/distributed-workloads /data/distributed-workloads
-        volumeMounts:        
+        volumeMounts:
         - name: data
           mountPath: /data
       restartPolicy: Never
-      volumes:      
+      volumes:
       - name: data
         persistentVolumeClaim:
           claimName: stable-diffusion-shared-storage

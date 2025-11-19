@@ -58,7 +58,7 @@ You can now proceed with the instructions from the notebook. Enjoy!
 >   * You can skip Kueue usage by:
 >     * Disabling the existing `kueue-validating-admission-policy-binding`
 >     * Omitting the local-queue-name label in your job configuration
-> 
+>
 > **Note:** Kueue Enablement via Validating Admission Policy was introduced in RHOAI-2.21. You can skip this section if using an earlier RHOAI release version.
 
 ### Configure Kueue (Optional)

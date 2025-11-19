@@ -1,5 +1,6 @@
-import datasets
 import sys
+
+import datasets
 
 src = sys.argv[1]
 dst = sys.argv[2]
@@ -17,13 +18,22 @@ PROMPT_DICT = {
     ),
 }
 
+
 def format_alpaca_fn(example):
-    prompt_input, prompt_no_input = PROMPT_DICT['prompt_input'], PROMPT_DICT['prompt_no_input']
-    output = prompt_input.format_map(example) if example.get("input", "") != "" else prompt_no_input.format_map(example)
+    prompt_input, prompt_no_input = (
+        PROMPT_DICT["prompt_input"],
+        PROMPT_DICT["prompt_no_input"],
+    )
+    output = (
+        prompt_input.format_map(example)
+        if example.get("input", "") != ""
+        else prompt_no_input.format_map(example)
+    )
     output = f"{output} {example['output']}"
     return {"output": output}
 
-ds = datasets.load_dataset('json', data_files=src)
 
-alpaca_ds = ds['train'].map(format_alpaca_fn, remove_columns=['instruction', 'input'])
+ds = datasets.load_dataset("json", data_files=src)
+
+alpaca_ds = ds["train"].map(format_alpaca_fn, remove_columns=["instruction", "input"])
 alpaca_ds.to_json(dst)

@@ -3,4 +3,4 @@ kind: LocalQueue
 metadata:
   name: team2
 spec:
-  clusterQueue: team2 
+  clusterQueue: team2

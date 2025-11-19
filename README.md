@@ -53,7 +53,7 @@ To upload trained model into S3 compatible storage, use the environment variable
 * `NOTEBOOK_USER_TOKEN` - Login token of user used for running Workbench
 * `NOTEBOOK_IMAGE` - Image used for running Workbench
 
-To download MNIST training script datasets from S3 compatible storage, use the environment variables mentioned below : 
+To download MNIST training script datasets from S3 compatible storage, use the environment variables mentioned below :
 * `AWS_DEFAULT_ENDPOINT` - Storage bucket endpoint from which to download MNIST datasets
 * `AWS_ACCESS_KEY_ID` - Storage bucket access key
 * `AWS_SECRET_ACCESS_KEY` - Storage bucket secret key

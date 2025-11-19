@@ -1,15 +1,16 @@
 def train_func():
+    import gzip
     import os
+    import shutil
+    from pathlib import Path
+    from urllib.parse import urlparse
+
     import torch
+    import torch.distributed as dist
     import torch.nn.functional as F
+    from minio import Minio
     from torch.utils.data import DistributedSampler
     from torchvision import datasets, transforms
-    import torch.distributed as dist
-    from pathlib import Path
-    from minio import Minio
-    import shutil
-    import gzip
-    from urllib.parse import urlparse
 
     # [1] Setup PyTorch DDP. Distributed environment will be set automatically by Training Operator.
     dist.init_process_group(backend="nccl" if torch.cuda.is_available() else "gloo")
@@ -76,22 +77,22 @@ def train_func():
         if not os.path.exists(dataset_dir):
             os.makedirs(dataset_dir)
 
-        for item in client.list_objects(
-            bucket_name, prefix=prefix, recursive=True
-        ):  
-            file_name=item.object_name[len(prefix)+1:]
+        for item in client.list_objects(bucket_name, prefix=prefix, recursive=True):
+            file_name = item.object_name[len(prefix) + 1 :]
             dataset_file_path = os.path.join(dataset_dir, file_name)
             print(f"Downloading dataset file {file_name} to {dataset_file_path}..")
             if not os.path.exists(dataset_file_path):
-                client.fget_object(
-                    bucket_name, item.object_name, dataset_file_path
-                )
-                # Unzip files -- 
+                client.fget_object(bucket_name, item.object_name, dataset_file_path)
+                # Unzip files --
                 ## Sample zipfilepath : ../data/MNIST/raw/t10k-images-idx3-ubyte.gz
                 with gzip.open(dataset_file_path, "rb") as f_in:
-                    filename=file_name.split(".")[0]    #-> t10k-images-idx3-ubyte
-                    file_path=("/".join(dataset_file_path.split("/")[:-1]))     #->../data/MNIST/raw
-                    full_file_path=os.path.join(file_path,filename)     #->../data/MNIST/raw/t10k-images-idx3-ubyte
+                    filename = file_name.split(".")[0]  # -> t10k-images-idx3-ubyte
+                    file_path = "/".join(
+                        dataset_file_path.split("/")[:-1]
+                    )  # ->../data/MNIST/raw
+                    full_file_path = os.path.join(
+                        file_path, filename
+                    )  # ->../data/MNIST/raw/t10k-images-idx3-ubyte
                     print(f"Extracting {dataset_file_path} to {file_path}..")
 
                     with open(full_file_path, "wb") as f_out:

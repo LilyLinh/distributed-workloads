@@ -1,9 +1,9 @@
 kind: Namespace
 apiVersion: v1
 metadata:
-  name: openshift-storage  
+  name: openshift-storage
   labels:
-    kubernetes.io/metadata.name: openshift-storage    
+    kubernetes.io/metadata.name: openshift-storage
   finalizers:
     - kubernetes
 ---
@@ -25,9 +25,9 @@ metadata:
   labels:
     operators.coreos.com/odf-operator.openshift-storage: ""
   name: odf-operator
-  namespace: openshift-storage  
+  namespace: openshift-storage
 spec:
   installPlanApproval: Automatic
   name: odf-operator
   source: redhat-operators
-  sourceNamespace: openshift-marketplace  
+  sourceNamespace: openshift-marketplace

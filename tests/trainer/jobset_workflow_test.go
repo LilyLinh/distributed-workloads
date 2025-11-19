@@ -137,13 +137,13 @@ func createTrainingRuntimeWithInitializers(test Test, namespace, pvcName string)
 														echo "=========================================="
 														echo "          Dataset Initializer             "
 														echo "=========================================="
-														
+
 														# Check if dataset-initializer job should fail on purpose (for failure tests)
 														if [ "${FAIL_ON_PURPOSE}" = "true" ]; then
 															echo "ERROR: Failing on purpose as requested"
 															exit 1
 														fi
-														
+
 													echo "Dataset: ${DATASET_NAME}"
 													echo "Target path: ${DATASET_PATH}"
 													echo "Copying ${DATASET_NAME} to shared volume..."
@@ -389,7 +389,7 @@ func createTrainJobWithInitializers(test Test, namespace, runtimeName string) *t
 				echo "============================================================="
 				echo "Dataset path: ${DATASET_PATH}"
 				echo "Model path: ${MODEL_PATH}"
-				
+
 				if [ -d "${DATASET_PATH}" ]; then
 					echo "   Dataset is accessible  "
 					ls -la ${DATASET_PATH}/ | head -5
@@ -397,7 +397,7 @@ func createTrainJobWithInitializers(test Test, namespace, runtimeName string) *t
 					echo "   Dataset NOT found at ${DATASET_PATH}!   "
 					exit 1
 				fi
-				
+
 				echo ""
 				if [ -d "${MODEL_PATH}" ]; then
 					echo "   Model is accessible   "
@@ -406,7 +406,7 @@ func createTrainJobWithInitializers(test Test, namespace, runtimeName string) *t
 					echo "   Model NOT found at ${MODEL_PATH}!   "
 					exit 1
 				fi
-				
+
 				echo ""
 				echo "Trainer job has access to dataset and model. Verification is successful !!!"
 				`,

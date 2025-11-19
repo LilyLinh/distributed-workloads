@@ -11,4 +11,3 @@ FROM registry.access.redhat.com/ubi9:9.4
 WORKDIR /
 
 COPY --from=builder /bloom-560m /models/bloom-560m
-

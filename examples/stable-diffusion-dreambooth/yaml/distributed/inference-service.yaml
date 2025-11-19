@@ -22,7 +22,7 @@ spec:
       resources:
         limits:
           nvidia.com/gpu: '1'
-        requests:     
+        requests:
           nvidia.com/gpu: '1'
       runtime: stable-diffusion
       storage:

@@ -1,7 +1,7 @@
-from typing import List, Optional
+import logging
 import os
 import subprocess
-import logging
+from typing import List, Optional
 
 from awscliv2.installers import install_multiplatform
 

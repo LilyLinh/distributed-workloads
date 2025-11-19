@@ -157,7 +157,7 @@ Multi-Project Scenarios:
 =======================
 Basic Multi-Tenant Resource Sharing:
 1. Team1 runs training job in team1-alpha-project → Uses GPUs from team1 ClusterQueue quota
-2. Team2 runs inference job in team2-beta-project → Uses GPUs from team2 ClusterQueue quota  
+2. Team2 runs inference job in team2-beta-project → Uses GPUs from team2 ClusterQueue quota
 3. Team1 needs inference capacity in team1-beta-project → Uses available GPUs from team1 quota
 4. Team2 needs training capacity in team2-alpha-project → Uses available GPUs from team2 quota
 5. GPU type selection depends on job nodeSelector and availability within team quotas
@@ -179,7 +179,7 @@ Advanced Multi-Tenant Scenarios:
 * An OpenShift cluster with admin permissions (for the setup steps)
 * The `oc`, `curl`, and `git` (or equivalent) binaries installed locally
 * Enough worker nodes with NVIDIA GPUs (Ampere-based or newer recommended) or AMD GPUs (AMD Instinct MI300X)
-* The NFD operator and the NVIDIA GPU operator or AMD GPU operator installed and configured 
+* The NFD operator and the NVIDIA GPU operator or AMD GPU operator installed and configured
 * A dynamic storage provisioner supporting RWX PVC provisioning (or see the NFS provisioner section)
 
 ## Workshop Flow
@@ -394,7 +394,7 @@ In each team's workbench, follow these steps:
     ```
 * Add `HF_TOKEN` environment variable if using gated models (the examples use gated Llama models that require a token)
   > [!NOTE]
-  > - This workshop requires Red Hat OpenShift AI v2.21+ with Kubeflow Training SDK v1.9.2+ for full Kueue integration support. 
+  > - This workshop requires Red Hat OpenShift AI v2.21+ with Kubeflow Training SDK v1.9.2+ for full Kueue integration support.
   > - Ensure you have access to [Llama-3.1 model](https://huggingface.co/meta-llama/Llama-3.1-8B)
 
 **Step 4: Submit the job**

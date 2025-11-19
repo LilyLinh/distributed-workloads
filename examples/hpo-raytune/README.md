@@ -1,6 +1,6 @@
 # HPO with raytune POC on OpenShift AI
 
-This example primarily focuses on optimizing machine learning models using RayTune. It demonstrates the process of hyperparameter tuning to find the best-performing model configuration for a given model, leveraging the capabilities of RayCluster and CodeFlare. There are three examples provided, all of these have hidden layer size and learning rate as hyperparameters. The base demo will simply upload the model to the s3 bucket. The mlmd demo creates and stores the model into a mlmd store and the MR-gRPC using the MR API to do the same. 
+This example primarily focuses on optimizing machine learning models using RayTune. It demonstrates the process of hyperparameter tuning to find the best-performing model configuration for a given model, leveraging the capabilities of RayCluster and CodeFlare. There are three examples provided, all of these have hidden layer size and learning rate as hyperparameters. The base demo will simply upload the model to the s3 bucket. The mlmd demo creates and stores the model into a mlmd store and the MR-gRPC using the MR API to do the same.
 
 ## Requirements
 
@@ -14,7 +14,7 @@ This example primarily focuses on optimizing machine learning models using RayTu
 * Access the OpenShift AI dashboard, for example from the top navigation bar menu:
 ![](./docs/ai-dashboard.png)
 
-* Log in, then go to Data Science Projects and create a project:  
+* Log in, then go to Data Science Projects and create a project:
 ![](./docs/create-data-science.png)
 
 * Once the project is created, click on Create a workbench:<br/><br/>
@@ -23,7 +23,7 @@ This example primarily focuses on optimizing machine learning models using RayTu
 * Add a cluster storage with the following details:
 ![](./docs/create-workbench.png)
 
-* Then create a workbench with the following settings:  
+* Then create a workbench with the following settings:
 ![](./docs/workbench-config.png)
 
 * Add data connection with relevant details of your S3 storage bucket:
@@ -49,7 +49,7 @@ If you don't have an S3 storage readily available, you can create a local S3 com
     ```
 
 3. In cluster, search for created API and UI routes.
-    ![](./docs/minio-routes.png) 
+    ![](./docs/minio-routes.png)
 
 4. Open Minio UI console and Create bucket (Default credentials : `minio`/`minio123`)
     ![](./docs/minio-console.png)
@@ -59,7 +59,7 @@ If you don't have an S3 storage readily available, you can create a local S3 com
 
 ### Setting Up Model Registry
 
-The MR (Model Registry) is used in the MR-gRPC example. The MR is a mlmd store that provides managment for various different metadata types as well as a gRPC API. You can read further about the MR and its uses here: https://github.com/kubeflow/model-registry 
+The MR (Model Registry) is used in the MR-gRPC example. The MR is a mlmd store that provides managment for various different metadata types as well as a gRPC API. You can read further about the MR and its uses here: https://github.com/kubeflow/model-registry
 
 To install the Model Registry Controller, follow these steps:
 
@@ -102,7 +102,7 @@ kubectl apply -k config/samples/postgres
     * Raytune-oai-demo-mlmd.ipynb - stores and retrives all data in a mlmd store
     * Raytune-oai-MR-gRPC-demo.ipynb - stores and retreives all data using the model registry api
 
-* In the openshift console open “copy login token”:  
+* In the openshift console open “copy login token”:
 ![](./docs/copy-command.png)
 
 * Replace the TOKEN and SERVER variables with those from the login command (in order to allow the sdk to access the openshift cluster):

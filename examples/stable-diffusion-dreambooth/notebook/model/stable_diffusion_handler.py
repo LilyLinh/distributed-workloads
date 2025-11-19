@@ -5,14 +5,14 @@ import zipfile
 from abc import ABC
 
 import diffusers
-from diffusers import StableDiffusionPipeline
 import numpy as np
 import torch
-
+from diffusers import StableDiffusionPipeline
 from ts.torch_handler.base_handler import BaseHandler
 
 logger = logging.getLogger(__name__)
 logger.info("Diffusers version %s", diffusers.__version__)
+
 
 class DiffusersHandler(BaseHandler, ABC):
     """
@@ -28,21 +28,21 @@ class DiffusersHandler(BaseHandler, ABC):
         Args:
             ctx (context): It is a JSON Object containing information
             pertaining to the model artifacts parameters.
-        """        
+        """
         self.manifest = ctx.manifest
         properties = ctx.system_properties
         model_dir = properties.get("model_dir")
 
         # Set device type
         if torch.cuda.is_available():
-            self.device = torch.device("cuda")        
+            self.device = torch.device("cuda")
         elif torch.backends.mps is not None and torch.backends.mps.is_available():
             self.device = torch.device("mps")
         elif XLA_AVAILABLE:
-            self.device = xm.xla_device()             
+            self.device = xm.xla_device()
         else:
-            self.device = torch.device("cpu")            
-        
+            self.device = torch.device("cpu")
+
         logger.info(f"Using device: {self.device}")
 
         # Loading the model and tokenizer from checkpoint and config files based on the user's choice of mode
@@ -51,9 +51,9 @@ class DiffusersHandler(BaseHandler, ABC):
 
         with zipfile.ZipFile(model_dir + "/model.zip", "r") as zip_ref:
             zip_ref.extractall(model_dir + "/model")
-        
+
         self.pipe = StableDiffusionPipeline.from_pretrained(model_dir + "/model")
-        #self.pipe = DiffusionPipeline.from_pretrained(model_dir + "/model")
+        # self.pipe = DiffusionPipeline.from_pretrained(model_dir + "/model")
         self.pipe.to(self.device)
         logger.info("Diffusion model from path %s loaded successfully", model_dir)
 
@@ -105,15 +105,16 @@ class DiffusersHandler(BaseHandler, ABC):
             images.append(np.array(image).tolist())
         return images
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 
     # For testing manually
     class Context(object):
         def __init__(self):
-         self.manifest = None
-         self.system_properties = {
-            "model_dir": '/tmp/torch',            
-        }
-         
+            self.manifest = None
+            self.system_properties = {
+                "model_dir": "/tmp/torch",
+            }
+
     h = DiffusersHandler()
     h.initialize(Context())
